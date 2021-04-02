@@ -18,8 +18,10 @@ namespace project2_2_ver5
         //
         class MSE
         {
+            // 배열의 길이를 담을 변수
             private int LenData;
 
+            // sio2의 반사계수와 소광계수를 담을 배열
             private double[] n_SiO2;
             private double[] k_SiO2;
 
@@ -40,9 +42,16 @@ namespace project2_2_ver5
 
             private double[] wavelength_SiO2;
 
+            // 측정 알파, 베타를 담을 리스트
             private List<double> alpha_exp = new List<double>();
             private List<double> beta_exp = new List<double>();
 
+            //
+            // mse 계산을 위해 관련 파일의 데이터를 불러와 변수에 저장한다.
+            //
+            // 2021.04.02 정지훈
+            //
+            #region 
             public MSE()
             {
 
@@ -202,6 +211,7 @@ namespace project2_2_ver5
                 Complex N_air = new Complex(1.0, 0);    // 공기의 굴절률.
                 this.AOI_air = AOI_air;
                 this.N_air = N_air;
+
                 // 반사, 투과계수를 계산한다.
                 for (int i = 0; i < LenData; i++)
                 {
@@ -259,18 +269,15 @@ namespace project2_2_ver5
                 }
                 this.LenData = LenData;
             }
+            #endregion
 
+            #region
             public double returnMse(double thickness)
             {
-
-
                 // 두께 범위와 두께 간격을 설정한다.
-                double gap = 5.0;
 
-                // MSE 와 두께를 담을 배열을 선언, 초기화한다.
+                // MSE를 담을 변수를 선언한다.
                 double MSEs;
-
-                // 두께별 MSE 를 계산해서 MSEs 배열에 저장한다.
 
                 // 총 반사계수를 저장할 배열 선언.
                 Complex[] Rp = new Complex[LenData],
@@ -319,31 +326,41 @@ namespace project2_2_ver5
                     double Psi = Atan(rho.Magnitude);
                     double Delta = rho.Phase;
 
-
+                    // 알파, 베타 이론값을 계산한다.
                     alpha_cal[i] = (Pow(Tan(Psi), 2.0) - Pow(Tan(polarizerAngle), 2.0)) /
                                            (Pow(Tan(Psi), 2.0) + Pow(Tan(polarizerAngle), 2.0));
 
                     beta_cal[i] = (2.0 * Tan(Psi) * Cos(Delta) * Tan(polarizerAngle)) /
                                            (Pow(Tan(Psi), 2.0) + Pow(Tan(polarizerAngle), 2.0));
                 }
+
                 double sum = 0;
+                // 측정, 실제 알파와 베타를 통해 MSE를 계산한다.
                 for (int i = 0; i < LenData; i++)
                 {
                     double difference_MSE =
                          Pow((alpha_exp[i] - alpha_cal[i]), 2.0) +
                          Pow((beta_exp[i] - beta_cal[i]), 2.0);
                     sum += difference_MSE;
-
                 }
 
                 MSEs = sum / LenData;
                 //WriteLine($"{ thickness }     { MSEs }");
+
                 return MSEs;
             }
+            #endregion
         }
 
         static void Main(string[] args)
         {
+            //
+            // 두께별로 계산된 MSE 를 통해
+            // global minimum 일 때의 두께, MSE 값을 찾는다.
+            //
+            // 2021.03.26 이지원.
+            //
+            #region global minimum 탐색.
             MSE MyMSE = new MSE();
 
             double StartThickness = 700.0;
@@ -355,7 +372,7 @@ namespace project2_2_ver5
             double[] MSEs = new double[(int)numMSE];
             double[] thicknesses = new double[(int)numMSE];
 
-            // 두께별 MSE 를 계산해서 MSEs 배열에 저장한다.
+            // 두께별 MSE 를 계산해서 MSEs 배열에 저장한다.(두께 범위는 700 ~ 1300, 간격은 5)
             int idx = 0;
             for (double thickness = StartThickness; thickness <= EndThickness; thickness += gap)
             {
@@ -363,14 +380,6 @@ namespace project2_2_ver5
                 MSEs[idx] = MyMSE.returnMse(thickness);
                 ++idx;
             }
-
-            //
-            // 두께별로 계산된 MSE 를 통해
-            // global minimum 일 때의 두께, MSE 값을 찾는다.
-            //
-            // 2021.03.26 이지원.
-            //
-            #region global minimum 탐색.
 
             // MSEs 에서 global minimum 에서의 MSE, 두께값을 구한다.
             int idxGlobalMinimum = 0;           // global minimum 에서의 index.
@@ -387,7 +396,6 @@ namespace project2_2_ver5
                     break;
                 }
             }
-
             //WriteLine($"{thicknesses[idxGlobalMinimum]}     {MSEs[idxGlobalMinimum]}     {idxGlobalMinimum}");
             //1070     0.0016568615951739671     74
 
@@ -397,6 +405,8 @@ namespace project2_2_ver5
             double globalMSE = MSEs[idxGlobalMinimum];
 
             #endregion
+
+
 
             //
             // d0 근처에 있는 "실제" global minimum 이 되는 두께 d_sol 을 찾는다.
@@ -417,23 +427,26 @@ namespace project2_2_ver5
 
             // global minimum 을 찾는 시간을 측정한다.
             Stopwatch stopwatch = new Stopwatch();
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////
+            
+            // 두께 간격, 현재 두께를 갱신한다.
+            // 초기설정 두께
             nowD0 = 800;
             preD0 = 0;
-
-            // 두께 간격, 현재 두께를 갱신한다.
             gap = 0.5;
 
-            double gt = 0; // 
-            double mt = 0; // 아담
             double[] gradient = new double[2] { 0, 0 }; // 기울기
             int cnt = 0;    // global minimum 을 찾기 위한 연산의 반복 횟수.
-            double vt = 0;
 
+            // 초기값 설정
+            double vt = 0;
+            double gt = 0; // 
+            double mt = 0; // 아담
+
+            // MSE를 계산하는 함수를 사용하기 위한 객체
             MSE mSE = new MSE();
             preMSE = mSE.returnMse(0);
 
+            // 시간 측정 시작
             stopwatch.Start();
             while (true)
             {
@@ -448,11 +461,14 @@ namespace project2_2_ver5
                     $"beforegradient : {gradient[0]}     gradient : {gradient[1]}\n" +
                     $"gap : {gap}     vt : {vt}");
 
+                // 기울기의 부호가 바꼈는지 체크
                 bool a = true, b = true;
+                // 전의 기울기와 현재의 기울기의 부호가 다르면 a와 b를 false로 둔다.
+                // 기울기의 부호가 같으면 a, b 둘 중 하나만 false가 된다
                 _ = (gradient[0] >= 0) ? a = false : b = false;
                 _ = (gradient[1] >= 0) ? a = false : b = false;
 
-                // 두 MSE 의 차이가 0.00001(10^-5) 이하이면 while 문을 탈출한다.
+                // 두 MSE 의 차이가 0.00001(10^-5) 이하이고 기울기의 부호가 바뀌면 while 문을 탈출한다.
                 if (Abs(preMSE - nowMSE) <= 0.00001 && a == false && b == false && preD0 != nowD0)
                 {
                     // global minimum 은 둘 중 작은 MSE 로 정한다.
@@ -463,12 +479,19 @@ namespace project2_2_ver5
                 }
 
                 gradient[0] = gradient[1];
+                // 2-2 첫번째에서 측정된 globalMSE와 현재 MSE 사이의 기울기를 측정함
                 gradient[1] = (globalMSE - nowMSE) / (globalD0 - nowD0);
                 preMSE = nowMSE;
                 preD0 = nowD0;
 
-                //아담 수정2
+                //아담 수정
                 //
+                // 지수 가중평균
+                // 데이터의 이동 평균을 구할 때, 오래된 데이터가 미치는 영향을 줄이는 방법
+                // 사용 이유 : 손실함수의 최저점을 찾기 위해 사용
+                // 지수 가중 평균의 근사식(v = 1 / (1 - beta))
+                // 10 = 1 / (1 - 0.9) -> 베타가 0.9이면 10일간의 데이터를 가지고 가중 평균을 구한것
+                // 1000 = (1 - 0.999) -> 베타가 0.999이면 1000일간의 데이터를 가지고 가중 평균을 구한것
                 gt = gradient[0];
                 mt = 0.9 * mt + (1 - 0.9) * gt;
                 vt = 0.999 * vt + (1 - 0.999) * Math.Pow(gradient[0], 2);
