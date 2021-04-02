@@ -51,7 +51,7 @@ namespace project2_2_ver5
             //
             // 2021.04.02 정지훈
             //
-            #region 
+            #region MSE 클래스 생성자를 통해 데이터의 반사계수/투과계수 계산
             public MSE()
             {
 
@@ -271,7 +271,7 @@ namespace project2_2_ver5
             }
             #endregion
 
-            #region
+            #region 두께 정보를 통해 MSE를 계산해 반환한다.
             public double returnMse(double thickness)
             {
                 // 두께 범위와 두께 간격을 설정한다.
@@ -421,7 +421,7 @@ namespace project2_2_ver5
 
             // global minimum 을 찾는 시간을 측정한다.
             Stopwatch stopwatch = new Stopwatch();
-            
+
             // 두께 간격, 현재 두께를 갱신한다.
             // 초기설정 두께
             double nowD0 = 1200;
@@ -441,7 +441,10 @@ namespace project2_2_ver5
             MSE mSE = new MSE();
             preMSE = mSE.returnMse(0);
 
-            //WriteLine("====================================================");
+            // 데이터 저장할 파일 열기
+            StreamWriter writer;
+            writer = File.CreateText(nowD0.ToString() + "nm_spectrum.dat");
+            writer.WriteLine("반복횟수" + "\t" + "thickness[nm]" + "\t" + "MSE");
             // 시간 측정 시작
             stopwatch.Start();
             while (true)
@@ -452,17 +455,21 @@ namespace project2_2_ver5
                 // 현재 두께의 mse를 구한다.
                 nowMSE = mSE.returnMse(nowD0);
 
+                // 콘솔 출력
                 WriteLine($"predo : {preD0}     preMSE: {preMSE}\n" +
                     $"nowdo : {nowD0}     nowMSE: {nowMSE}\n" +
                     $"beforegradient : {gradient[0]}     gradient : {gradient[1]}\n" +
                     $"gap : {gap}     vt : {vt}");
 
+                // 파일 출력
+                writer.WriteLine($"{cnt}" + "\t" + $"{nowD0}" + "\t" + $"{nowMSE}");
+
                 // 기울기의 부호가 바꼈는지 체크
-                bool a = true, b = true;
-                // 전의 기울기와 현재의 기울기의 부호가 다르면 a와 b를 false로 둔다.
-                // 기울기의 부호가 같으면 a, b 둘 중 하나만 false가 된다
-                _ = (gradient[0] >= 0) ? a = false : b = false;
-                _ = (gradient[1] >= 0) ? a = false : b = false;
+                /*                bool a = true, b = true;
+                                // 전의 기울기와 현재의 기울기의 부호가 다르면 a와 b를 false로 둔다.
+                                // 기울기의 부호가 같으면 a, b 둘 중 하나만 false가 된다
+                                _ = (gradient[0] >= 0) ? a = false : b = false;
+                                _ = (gradient[1] >= 0) ? a = false : b = false;*/
 
                 // 두 MSE 의 차이가 0.00001(10^-5) 이하이고 기울기의 부호가 바뀌면 while 문을 탈출한다.
                 if (Abs(preMSE - nowMSE) <= 0.00001 && preD0 != nowD0)
@@ -499,10 +506,15 @@ namespace project2_2_ver5
                 //gap = (0.001 * Sqrt(1-Math.Pow(0.999, cnt))) / (1- Math.Pow(0.9, cnt));
             }
 
-        Find_d_sol: WriteLine($"\n\n\n d_sol: {d_sol}    MSE: {GlobalMinimum}    idxGlobalMinimum: {idxGlobalMinimum}");
+        Find_d_sol:
+            // 콘솔 최종 데이터 출력
+            WriteLine($"\n\n\n d_sol: {d_sol}    MSE: {GlobalMinimum}    idxGlobalMinimum: {idxGlobalMinimum}");
             stopwatch.Stop();
             WriteLine($"소요 시간: {stopwatch.ElapsedMilliseconds}ms");
+            writer.WriteLine($"\n\n\n d_sol : {d_sol}" + "\t\t" + $"MSE_sol : {GlobalMinimum}" + "\t" + $"소요 시간 : {stopwatch.ElapsedMilliseconds}ms");
 
+            // 파일 종료
+            writer.Close();
             #endregion
         }
     }
