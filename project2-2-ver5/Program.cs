@@ -396,45 +396,40 @@ namespace project2_2_ver5
                     break;
                 }
             }
-            //WriteLine($"{thicknesses[idxGlobalMinimum]}     {MSEs[idxGlobalMinimum]}     {idxGlobalMinimum}");
+            WriteLine($"{thicknesses[idxGlobalMinimum]}     {MSEs[idxGlobalMinimum]}     {idxGlobalMinimum}");
             //1070     0.0016568615951739671     74
 
             // global minimum 에서의 두께 값.
-            double nowD0 = thicknesses[idxGlobalMinimum];
             double globalD0 = thicknesses[idxGlobalMinimum];
             double globalMSE = MSEs[idxGlobalMinimum];
 
             #endregion
 
 
-
             //
-            // d0 근처에 있는 "실제" global minimum 이 되는 두께 d_sol 을 찾는다.
-            // MSE 값의 변화가 10^-5 이하가 되면, 최적화 수행을 멈춘다.
-            //
-            // 2021.03.29 이지원.
+            // 초기 두께를 다르게 하였을 때, global minimum에 수렴하도록 하는 최적화 알고리즘을 작성한다.
+            // d0가 800, 1000, 1200 일때 수행시간, mse, 두께를 측정한다. 
+            // 2021.04.02 정지훈.
             //
             #region 두께 범위를 재설정하고 MSE를 구한다.
             double d_sol = 0.0;             // "실제" global minimum 이 되는 두께.
 
             // 이전 값을 가져야하는 변수에 현재 값을 초기화 해둔다.
-            double preD0 = nowD0,           // 이전 두께를 저장하는 변수.
-                   tempD0 = 0.0;
+            double preD0;                   // 이전 두께를 저장하는 변수.
             double preMSE = GlobalMinimum,  // 이전 MSE 를 저장하는 변수.
                    nowMSE = GlobalMinimum;  // 현재 MSE 를 저장하는 변수.
-            double preMSE_gradient = GlobalMinimum,  // 이전 MSE 를 저장하는 변수.
-                   nowMSE_gradient = GlobalMinimum;  // 현재 MSE 를 저장하는 변수.
 
             // global minimum 을 찾는 시간을 측정한다.
             Stopwatch stopwatch = new Stopwatch();
             
             // 두께 간격, 현재 두께를 갱신한다.
             // 초기설정 두께
-            nowD0 = 800;
+            double nowD0 = 1200;
             preD0 = 0;
             gap = 0.5;
 
-            double[] gradient = new double[2] { 0, 0 }; // 기울기
+            // 이전 기울기와 현재 기울기를 저장 할 배열
+            double[] gradient = new double[2] { 0, 0 };
             int cnt = 0;    // global minimum 을 찾기 위한 연산의 반복 횟수.
 
             // 초기값 설정
@@ -446,6 +441,7 @@ namespace project2_2_ver5
             MSE mSE = new MSE();
             preMSE = mSE.returnMse(0);
 
+            //WriteLine("====================================================");
             // 시간 측정 시작
             stopwatch.Start();
             while (true)
@@ -469,7 +465,7 @@ namespace project2_2_ver5
                 _ = (gradient[1] >= 0) ? a = false : b = false;
 
                 // 두 MSE 의 차이가 0.00001(10^-5) 이하이고 기울기의 부호가 바뀌면 while 문을 탈출한다.
-                if (Abs(preMSE - nowMSE) <= 0.00001 && a == false && b == false && preD0 != nowD0)
+                if (Abs(preMSE - nowMSE) <= 0.00001 && preD0 != nowD0)
                 {
                     // global minimum 은 둘 중 작은 MSE 로 정한다.
                     GlobalMinimum = (preMSE < nowMSE) ? preMSE : nowMSE;
@@ -511,3 +507,6 @@ namespace project2_2_ver5
         }
     }
 }
+// 800 : d_sol: 1066.8669331251822    MSE: 0.0017946439105968894    소요 시간: 575ms
+// 1000 : d_sol: 1066.8512652230645    MSE: 0.001809989325367689    소요 시간: 223ms
+// 1200 : d_sol: 1068.7075186362922    MSE: 0.0010068997146022319    소요 시간: 326ms
